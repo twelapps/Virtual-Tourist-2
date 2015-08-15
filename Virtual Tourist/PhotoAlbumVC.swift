@@ -60,9 +60,12 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // FIX001: remove empty photos (may be a left-over of pre-fetching photos while creating the pin, with a bad Internet connection)
+        Flickr().removeEmptyPhotosAndSave(pin)
+        
         // Initialize the (textView!) message field
-        errorMessage.editable = false // do not allow edit of the error message textview field
-        errorMessage.delegate = self
+        errorMessage.editable         = false // do not allow edit of the error message textview field
+        errorMessage.delegate         = self
         
         // (De-)activate the "New Collection" and "+" buttons
         activateCollectionButtons()
