@@ -204,8 +204,9 @@
                         <outlet property="FlickrAPIKey" destination="Kkg-Bw-aBI" id="kRz-7r-SC3"/>
                         <outlet property="confirmCollectionRenewal" destination="Zii-OZ-GPd" id="bra-ON-1Mw"/>
                         <outlet property="latLonVariance" destination="gqt-6e-1Sl" id="djn-0f-W3z"/>
+                        <outlet property="maxNrPhotosToDownload" destination="SUx-Ka-ajj" id="lXf-mv-euK"/>
                         <outlet property="nrPhotosToDownloadInput" destination="cme-Nd-iHE" id="tU3-87-0t7"/>
-                        <outlet property="preLoadPhotosLabel" destination="xuv-hI-l7G" id="p0S-Dk-a8f"/>
+                        <outlet property="preLoadPhotosLabel" destination="xuv-hI-l7G" id="XBt-Rh-2v9"/>
                         <outlet property="preLoadPhotosSwitch" destination="TqO-lA-Bca" id="ahb-1g-8qB"/>
                         <outlet property="supportDraggingPinSwitch" destination="ixR-WT-8bz" id="RW6-bI-K7t"/>
                     </connections>

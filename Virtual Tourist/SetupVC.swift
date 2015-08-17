@@ -16,6 +16,7 @@ class SetupVC: UIViewController {
     @IBOutlet weak var latLonVariance           : UISlider!
     @IBOutlet weak var confirmCollectionRenewal : UISwitch!
     @IBOutlet weak var supportDraggingPinSwitch : UISwitch!
+    @IBOutlet weak var maxNrPhotosToDownload    : UILabel!
     @IBOutlet weak var nrPhotosToDownloadInput  : UITextField!
     @IBOutlet weak var preLoadPhotosLabel       : UILabel!
     @IBOutlet weak var preLoadPhotosSwitch      : UISwitch!
@@ -32,47 +33,52 @@ class SetupVC: UIViewController {
                                               action: "DoneSelected")
         self.navigationItem.setRightBarButtonItem(pinBarButtonItem, animated: true)
         
-        // De-activate function to switch preloading of pins until further notice; always preload now
+        // De-activate preLoad button: just always do it
         preLoadPhotosLabel.enabled  = false
         preLoadPhotosLabel.alpha    = 0
         preLoadPhotosSwitch.enabled = false
         preLoadPhotosSwitch.alpha   = 0
         
         // Get Flickr API key
-        if Flickr().getFlickrApiKey() != "" {
+        if Flickr.sharedInstance.getFlickrApiKey() != "" {
             FlickrAPIKey.text = Flickr.Constants.FlickrAPIKeyToDisplay
         } else {
             FlickrAPIKey.text = ""
         }
         
         // Get variance parameter (between 0.1 and 1 degrees)
-        let getLatLonVar = Flickr().getVariance()
+        let getLatLonVar = Flickr.sharedInstance.getVariance()
         latLonVariance.setValue(Float(getLatLonVar*10), animated: false)
         
         // Get confirmation parameter
-        if Flickr().getAskConfirmationCollectionRenewal() {
+        if Flickr.sharedInstance.getAskConfirmationCollectionRenewal() {
             confirmCollectionRenewal.setOn(true, animated: true)
         } else {
             confirmCollectionRenewal.setOn(false, animated: true)
         }
         
         // Get support dragging pin parameter
-        if Flickr().supportDraggingPin() {
+        if Flickr.sharedInstance.supportDraggingPin() {
             supportDraggingPinSwitch.setOn(true, animated: true)
         } else {
             supportDraggingPinSwitch.setOn(false, animated: true)
         }
         
         // Get pre-load photos parameter
-        if Flickr().preLoadPhotos() {
+        if Flickr.sharedInstance.preLoadPhotos() {
             preLoadPhotosSwitch.setOn(true, animated: true)
         } else {
             preLoadPhotosSwitch.setOn(false, animated: true)
         }
         
+        // Maximum number of photos to download at once
+        maxNrPhotosToDownload.text! =  "to download (1 ... "
+        maxNrPhotosToDownload.text! += String(Flickr.Constants.nrPhotosToDownloadDefault)
+        maxNrPhotosToDownload.text! += ")"
+        
         // Get nr of photos to download
         
-        nrPhotosToDownloadInput.text = String(Flickr().nrOfPhotosToDownload())
+        nrPhotosToDownloadInput.text = String(Flickr.sharedInstance.nrOfPhotosToDownload())
         
         tapRecognizer = UITapGestureRecognizer(target: self, action: "handleSingleTap:")
         tapRecognizer!.numberOfTapsRequired = 1
@@ -92,7 +98,7 @@ class SetupVC: UIViewController {
         if FlickrAPIKey.text == Flickr.Constants.FlickrAPIKeyToDisplay {
             // Do nothing, key has not changed
         } else {
-            Flickr().setFlickrApiKey(FlickrAPIKey.text)
+            Flickr.sharedInstance.setFlickrApiKey(FlickrAPIKey.text)
         }
         
         // Archive new variance parameter
@@ -101,12 +107,12 @@ class SetupVC: UIViewController {
         // Archive number of photos to download
         let temp = nrPhotosToDownloadInput.text.toInt()
         if temp != nil && temp >= 1  && temp <= Flickr.Constants.nrPhotosToDownloadDefault {
-            Flickr().setNrOfPhotosToDownload(temp!)
+            Flickr.sharedInstance.setNrOfPhotosToDownload(temp!)
         } else {
             if temp < 1 {
-                Flickr().setNrOfPhotosToDownload(1)
+                Flickr.sharedInstance.setNrOfPhotosToDownload(1)
             } else {
-                Flickr().setNrOfPhotosToDownload(Flickr.Constants.nrPhotosToDownloadDefault)
+                Flickr.sharedInstance.setNrOfPhotosToDownload(Flickr.Constants.nrPhotosToDownloadDefault)
             }
         }
         
@@ -125,28 +131,28 @@ class SetupVC: UIViewController {
         
         let v: Double = Double(round(latLonVariance.value)/10) // Rounds up to int, deviding by 10 to 1 decimal
         
-        Flickr().setVariance(v)
+        Flickr.sharedInstance.setVariance(v)
     }
     
     @IBAction func confirmCollRenewal (sender: AnyObject) {
         
         let confSwitch: Bool = confirmCollectionRenewal.on ? true : false
         
-        Flickr().setAskConfirmationCollectionRenewal(confSwitch)
+        Flickr.sharedInstance.setAskConfirmationCollectionRenewal(confSwitch)
     }
     
     @IBAction func supportDraggingPin (sender: AnyObject) {
         
         let draggingPinSwitch: Bool = supportDraggingPinSwitch.on ? true : false
         
-        Flickr().setSupportDraggingPin(draggingPinSwitch)
+        Flickr.sharedInstance.setSupportDraggingPin(draggingPinSwitch)
     }
     
     @IBAction func preLoadPhotos (sender: AnyObject) {
         
         let myPreLoadPhotosSwitch: Bool = preLoadPhotosSwitch.on ? true : false
         
-        Flickr().setPreLoadPhotos(myPreLoadPhotosSwitch)
+        Flickr.sharedInstance.setPreLoadPhotos(myPreLoadPhotosSwitch)
     }
 
 }

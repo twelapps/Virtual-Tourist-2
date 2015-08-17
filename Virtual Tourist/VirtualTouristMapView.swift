@@ -34,7 +34,7 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
         //   Then do nothing (call-out will be displayed and upon selecting the call-out the user will be navigated to the
         //        associated photos collection)
         //   Else navigate to accociated photos collection right away
-        if Flickr().supportDraggingPin() {
+        if Flickr.sharedInstance.supportDraggingPin() {
             // Do nothing
         } else {
             // Define input parameters for PhotoAlbumVC and navigate to it
@@ -113,10 +113,9 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
     func addPinToCore (lat: Double, lon: Double) { // "pin" is implicit input and will be appended with the new pin
         
         let dictionary: [String : AnyObject] = [
-            //                Pin.Keys.PinIdent       : locCoordAnnot,
             Pin.Keys.Lat            : lat,
             Pin.Keys.Lon            : lon,
-            Pin.Keys.Variance       : Flickr().getVariance()
+            Pin.Keys.Variance       : Flickr.sharedInstance.getVariance()
         ]
         
         // Now we create a new Pin, using the shared Context
@@ -128,20 +127,27 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
         // Finally we save the shared context, using the convenience method in the CoreDataStackManager
         CoreDataStackManager.sharedInstance().saveContext()
         
-        // Start downloading photos for this pin (if requested through set-up menu; default is: do.
-        // This is not a user requested action but a system action for efficiency and performance (better user experience) purposes. 
-        // Ignore error display, just clean-up data in case of error.
-        if Flickr().preLoadPhotos() {
-            Flickr().addEmptyPhotos(draggedPinToBeAdded)
-            Flickr().startDownloadingPhotosForPin(draggedPinToBeAdded, maxNrOfFlickrPagesIn: 0) { (maxNrOfFlickrPagesOut, success, errorString) in
+        // Start downloading photos for this pin (if requested through set-up menu; default is: do not, it soetimes generates errors.
+        // Ignore errors, this is not a user requested action, running in the background and only for efficiency purposes.
+        
+        if Flickr.sharedInstance.preLoadPhotos() {
+        
+            for index in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
                 
-                // In case of error remove empty photos from the pin and start fresh in the collection view controller
-                if success == false {
-                    Flickr().removeEmptyPhotosAndSave(draggedPinToBeAdded)
+                // Retrieve 1 photo from Flickr
+                Flickr.sharedInstance.downloadOnePhotoFromFlickr(draggedPinToBeAdded, maxNrOfFlickrPages: 0) { (success, errorString) in
+                    if success {
+                        // Proceed
+                    } else {
+                        dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                            // Remove empty photos and proceed
+                            Flickr.sharedInstance.removeEmptyPhotosAndSave(draggedPinToBeAdded)
+                        })
+                    }
                 }
             }
-        }
         
+        }
     }
     
     func deletePinFromCore (index: Int) {

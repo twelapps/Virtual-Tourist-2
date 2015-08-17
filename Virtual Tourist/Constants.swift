@@ -47,6 +47,7 @@ extension Flickr {
         
         static let msgEmptyMsg               = ""
         static let msgNoPhotosFound          = "No photos found. No Internet, wrong Flickr API key, quiet place?? Check Setup."
+        static let msgNoPhotosFound2         = "No photos could be downloaded from Flickr. No/bad Internet, quiet place?? Check Setup."
         static let msgCouldNotCompleteReq    = "Could not retrieve photos from Flickr. Internet problem?"
         static let msgInvalidFlickrResponse  = "The response Flickr gave could not be processed."
         

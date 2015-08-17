@@ -37,7 +37,12 @@ class PhotoVC: UIViewController {
         photoInfo.scrollRangeToVisible(NSMakeRange(0,0)) // Let beginning of text start at upper left corner of text view
         
         // Add photo image & photo description to the view and display the view
-        photoImage.image = UIImage(data: photo.image)
+        let img = Flickr.sharedInstance.readImage(photo.url_m)
+        if img != nil {
+            photoImage.image = UIImage(data: img!)
+        } else {
+            photoImage.image = UIImage()
+        }
         
         photoInfo.text = "" // Initialize
         if photo.photoTitle != "" {
@@ -48,6 +53,7 @@ class PhotoVC: UIViewController {
     func removePhotoSelected() {
         
         // Remove photo and save the remainder to core
+        Flickr.sharedInstance.removeImage(photo.url_m)
         photo.location = nil
         
         // Finally we save the shared context, using the convenience method in the CoreDataStackManager

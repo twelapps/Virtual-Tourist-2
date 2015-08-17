@@ -42,21 +42,24 @@ class TravelLocationsMapVC: UIViewController, UITextViewDelegate {
             action: "setupSelected")
         self.navigationItem.setRightBarButtonItem(setupBarButtonItem, animated: true)
         
-        // Check if there is a Flickr API key; if not navigate to setup menu
-        if Flickr().getFlickrApiKey() == "" {
-            setupSelected()
-        }
+        // Create a directory to store the image files. No problem if it already exists.
+        Flickr.sharedInstance.createDir()
         
     } // End of viewDidLoad
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         
+        // Check if there is a Flickr API key; if not navigate to setup menu
+        if Flickr.sharedInstance.getFlickrApiKey() == "" {
+            setupSelected()
+        }
+        
         // First remove all previous pins from the mapview
         mapView.removeAnnotations(mapView.annotations)
         
         // Then fetch all pins from Core (as the contents may have been changed by other user actions)
-        pins = Flickr().fetchAllPins()
+        pins = Flickr.sharedInstance.fetchAllPins()
         
         // Place all fetched pins on the map
         if pins.count > 0 {

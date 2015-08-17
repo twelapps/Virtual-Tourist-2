@@ -166,7 +166,7 @@ class FlickrDBClient : NSObject {
         // Flickr access method arguments
         let methodArgs = [
             "method"        : Flickr.Constants.METHOD_NAME,
-            "api_key"       : Flickr().getFlickrApiKey(),
+            "api_key"       : Flickr.sharedInstance.getFlickrApiKey(),
             "extras"        : Flickr.Constants.EXTRAS,
             "bbox"          : bbox(lat, lon: lon),
             "format"        : Flickr.Constants.DATA_FORMAT,
@@ -179,7 +179,7 @@ class FlickrDBClient : NSObject {
     
     func bbox(lat: Double, lon: Double) -> NSString {
         
-        let latLonVar = Flickr().getVariance() // Retrieve the size of the rectangle area around the pin to search for Flickr photos
+        let latLonVar = Flickr.sharedInstance.getVariance() // Retrieve the size of the rectangle area around the pin to search for Flickr photos
         
         let latDouble    = lat
         let lonDouble    = lon

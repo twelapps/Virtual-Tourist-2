@@ -14,10 +14,10 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     // Input parameter.
     var pin: Pin!
     
-    @IBOutlet weak var errorMessage: UITextView!
-    @IBOutlet weak var newCollectionButton: UIBarButtonItem!
+    @IBOutlet weak var errorMessage         : UITextView!
+    @IBOutlet weak var newCollectionButton  : UIBarButtonItem!
     @IBOutlet weak var addToCollectionButton: UIBarButtonItem!
-    @IBOutlet weak var myCollView  : UICollectionView!
+    @IBOutlet weak var myCollView           : UICollectionView!
     
     // Collection view cell reuse identifier
     private let reuseIdentifier = "FlickrCollectionViewCell"
@@ -25,10 +25,8 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     // Position of collectionview cells
     private let sectionInsets = UIEdgeInsets(top: -20.0, left: 10.0, bottom: 10.0, right: 10.0)
     
-    private var maxNrOfFlickrPages      = 0
-    private var success                 = true
-    private var error                   = ""
-    private var scrollToBottom          = false
+    // Maximum number of pages containing photos that Flickr can download in order to randomly select photos from.
+    private var maxNrOfFlickrPages = 0
     
     // Core Data Convenience. This will be useful for fetching. And for adding and saving objects as well.
     var sharedContext: NSManagedObjectContext {
@@ -53,19 +51,19 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     }()
     
     // Define 3 arrays for holding inserted, changed and deleted indexPaths
-    var insertIndexPaths  = [NSIndexPath]()
-    var changedIndexPaths = [NSIndexPath]()
-    var deletedIndexPaths = [NSIndexPath]()
+    private var insertIndexPaths  = [NSIndexPath]()
+    private var changedIndexPaths = [NSIndexPath]()
+    private var deletedIndexPaths = [NSIndexPath]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // FIX001: remove empty photos (may be a left-over of pre-fetching photos while creating the pin, with a bad Internet connection)
-        Flickr().removeEmptyPhotosAndSave(pin)
+        // Remove empty photos from the pin
+        Flickr.sharedInstance.removeEmptyPhotosAndSave(pin)
         
         // Initialize the (textView!) message field
-        errorMessage.editable         = false // do not allow edit of the error message textview field
-        errorMessage.delegate         = self
+        errorMessage.editable = false // do not allow edit of the error message textview field
+        errorMessage.delegate = self
         
         // (De-)activate the "New Collection" and "+" buttons
         activateCollectionButtons()
@@ -75,32 +73,48 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         
         // Set the delegate to this view controller
         fetchedResultsController.delegate = self
-
-        // If no pin-associated photos available yet, load photos from Flickr
-        if pin.photos.isEmpty {
+        
+        // As first step, obtain the maximumber of Flickr pages from which we can randomly choose photos
+        FlickrDBClient().GetFlickrMaxNrOfPagesContainingPhotos(pin.lat, lon: pin.lon) { (maxPages, success, errorString) in
             
-            // De-activate "New Collection" and "Add to Collection" ("+") buttons
-            newCollectionButton.enabled   = false
-            addToCollectionButton.enabled = false
-
-            // As first step add 12 (?) empty photos to the collectionView (for displaying an activity indicator)
-            Flickr().addEmptyPhotos(pin)
+            // Leave a-synchronous mode to read pin on the main thread which is the owner of the NSManagedObjectContext !!
+            dispatch_async(dispatch_get_main_queue(), {
             
-            // Retrieve 12 (?) photos from Flickr
-            Flickr().startDownloadingPhotosForPin (self.pin, maxNrOfFlickrPagesIn: self.maxNrOfFlickrPages) { (maxNrOfFlickrPagesOut, success, errorString) in
-                if success {
-                    self.maxNrOfFlickrPages = maxNrOfFlickrPagesOut
+            if success {
+                
+                self.maxNrOfFlickrPages = maxPages
+                
+                // If no pin-associated photos available yet, load photos from Flickr
+                if self.pin.photos.isEmpty {
+                    
+                    if self.retrievePhotos() {
+                        // One or more photos could not be dowloaded, reload the screen to activate New Collection and "+" buttons
+                        dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                            self.myCollView.reloadData()
+                        }) //end of dispatch
+                    }
+                    
                 } else {
-                    // Bad luck, throw message
+                    // (De-)activate the "New Collection" and "+" buttons. Processing of new photos can still be going on after pin creation.
+                    self.activateCollectionButtons()
+                }
+            } else {
+                // Maybe we want to see the Collection of photos off-line. Only display error if there are no pin-associated photos yet.
+                if self.pin.photos.isEmpty {
                     dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
                         self.throwMessage(errorString!)
                     }) //end of dispatch
+                } else {
+                    // We want to see the Collection of photos off-line
+                    // De-activate the "New Collection" and "+" buttons since we cannot perform these operations while off-line
+                    self.newCollectionButton.enabled   = false
+                    self.addToCollectionButton.enabled = false
                 }
             }
-        } else {
-            // (De-)activate the "New Collection" and "+" buttons. Processing of new photos can still be going on after pin creation.
-            activateCollectionButtons()
-        }
+                
+            }) // End of dispatch_async
+            
+        } // End of "FlickrDBClient().GetFlickrMaxNrOfPagesContainingPhotos"
         
     } // ========== End of "viewDidLoad" =======================================================================================================
     
@@ -110,14 +124,13 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         errorMessage.alpha = 0                                    // Do not display error message field
         errorMessage.text  = Flickr.Constants.msgEmptyMsg         // Initiate error message field
         
-    } // ========== End of "viewWillAppear" ====================================================================================================
+    } // ========== End of "viewWillAppear" =======================================================================================================
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
         
         return sectionInfo.numberOfObjects
-        
     } // ========== End of "collectionView.numberOfItemsInSection" ============================================================================
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
@@ -132,13 +145,17 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             // Init cell
             cell!.flickrImageView.image = UIImage()
             cell!.activityIndicatorView.startAnimating()
-        
-            if photo.image != NSData() {
-                cell!.flickrImageView?.image = UIImage(data: photo.image)
+            
+            if photo.url_m != "" {
+                // Retrieve the image from the Documents Directory
+                let tempImage = Flickr.sharedInstance.readImage(photo.url_m)
+                if tempImage != nil {
+                    cell!.flickrImageView?.image = UIImage(data: tempImage!)
+                    cell!.activityIndicatorView.stopAnimating()
+                }
+                
             }
             
-            // Note: requeting reload of the cell on the main thread here causes a loop! Don't try that again.
-
         } // End of "if cell != nil {"
         
         activateCollectionButtons()
@@ -151,7 +168,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         
         // Just process if there is an image in the collection item (otherwise it might just be the activity indicator) and
         // if the "new collection" button is enabled - otherwise the system is processing new photos
-        if (pin.photos[indexPath.row].image != NSData()) && newCollectionButton.enabled {
+        if (pin.photos[indexPath.row].url_m != "") && newCollectionButton.enabled {
             
             // Deselect the selected entry otherwise the background of the selected entry remains grey
             collectionView.deselectItemAtIndexPath(indexPath, animated: true)
@@ -169,7 +186,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         
     } // ========== End of "collectionView.didSelectItemAtIndexPath" ===============================================================================
 
-    /* For DEBUG: timestamp ******************************************/
+    /* FOR DEBUG ******************************************/
     func currentTimeMillis() -> Int64{
         var nowDouble = NSDate().timeIntervalSince1970
         return Int64(nowDouble*1000)
@@ -202,7 +219,6 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
                 insertIndexPaths.append(newIndexPath!)
             default: return
             }
-            
     } // ========== End of "controller.didChangeObject" ===============================================================================
     
     func controllerDidChangeContent(controller: NSFetchedResultsController) {
@@ -221,16 +237,55 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             // Reload cells in order to get activity indicator or image displayed
             self.myCollView.reloadItemsAtIndexPaths(self.changedIndexPaths)
             
-             }, completion: nil)
+            }, completion: nil)
         
     } // ========== End of "controller.didChangeContent" ===============================================================================
+    
+    func retrievePhotos () -> Bool {
+        
+        // Error count. We should not bother about 1 or 2 errors but we should throw a message if no photos can be sownloaded at all.
+        var errorWhileRetrievingPhotos = 0
+        
+        // De-activate "New Collection" and "Add to Collection" ("+") buttons
+        self.newCollectionButton.enabled   = false
+        self.addToCollectionButton.enabled = false
+        
+        for index in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
+            
+            // Retrieve 1 photo from Flickr
+            Flickr.sharedInstance.downloadOnePhotoFromFlickr(self.pin, maxNrOfFlickrPages: self.maxNrOfFlickrPages) { (success, errorString) in
+                if success {
+                    // Proceed
+                } else {
+                    // Bad luck, increase error count.
+                    errorWhileRetrievingPhotos += 1
+                }
+            }
+        }
+        
+        if errorWhileRetrievingPhotos == Flickr.sharedInstance.nrOfPhotosToDownload() {
+            // Throw error message
+            dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                self.throwMessage(Flickr.Constants.msgNoPhotosFound2)
+            }) //end of dispatch
+            return false // Error
+        } else {
+            if errorWhileRetrievingPhotos > 0 {
+                // Reload needed otherwise the "New Collection" and "Add to current collection" buttons remain de-activated
+                return true
+            } else {
+                return false
+            }
+        }
+        
+    } // ========== End of "retrievePhotos" ===============================================================================
     
     func activateCollectionButtons() {
     
         // If all photos supplied, activate "new collection" and "add to collection" buttons
         var allPhotosSupplied = true
         for photo in pin.photos {
-            if photo.image == NSData() {
+            if photo.url_m == "" {
                 allPhotosSupplied = false
             }
         }
@@ -241,70 +296,44 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             newCollectionButton.enabled   = false
             addToCollectionButton.enabled = false
         }
-        
     } // ========== End of "activateCollectionButtons" ===============================================================================
     
     @IBAction func newCollection(sender: UIBarButtonItem) {
         
         // First ask confirmation (default, unless overwritten in Setup)
-        if Flickr().getAskConfirmationCollectionRenewal() {
+        if Flickr.sharedInstance.getAskConfirmationCollectionRenewal() {
             
             // Display pop-up
             var alert = UIAlertController(title: "Deleting previous collection", message: "Are you sure??", preferredStyle: UIAlertControllerStyle.Alert)
             alert.addAction(UIAlertAction(title: "Cancel", style: .Cancel, handler: nil))
             alert.addAction(UIAlertAction(title: "Yes", style: .Default, handler: { action in
                 
-                // De-activate "new collection" and "add to current collection" buttons
-                self.newCollectionButton.enabled   = false
-                self.addToCollectionButton.enabled = false
+                Flickr.sharedInstance.removeCurrentCollectionAndSave(self.pin)
                 
-                // Remove current collection
-                Flickr().removeCurrentCollectionAndSave(self.pin)
-                
-                // As first step add 12 (?) empty photos to the collectionView
-                Flickr().addEmptyPhotos(self.pin)
-                
-                // Do not reload / scroll to bottom but retrieve 12 (?) photos from Flickr
-                Flickr().startDownloadingPhotosForPin (self.pin, maxNrOfFlickrPagesIn: self.maxNrOfFlickrPages) { (maxNrOfFlickrPagesOut, success, errorString) in
-                    if success {
-                        self.maxNrOfFlickrPages = maxNrOfFlickrPagesOut
-                    } else {
-                        // Bad luck, throw message
-                        dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
-                            self.throwMessage(errorString!)
-                        }) //end of dispatch
-                    }
+                if self.retrievePhotos() {
+                    // One or more photos could not be dowloaded, reload the screen to activate New Collection and "+" buttons
+                    dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                        self.myCollView.reloadData()
+                    }) //end of dispatch
                 }
+                
             }))
+            
             self.presentViewController(alert, animated: true, completion: nil)
             
         } // End of "askConf = True
         else
         {
-            // De-activate "new collection" and "add to current collection" buttons
-            newCollectionButton.enabled   = false
-            addToCollectionButton.enabled = false
+            Flickr.sharedInstance.removeCurrentCollectionAndSave(pin)
             
-            // Remove current collection
-            Flickr().removeCurrentCollectionAndSave(pin)
-            
-            // As first step add 12 (?) empty photos to the collectionView
-            Flickr().addEmptyPhotos(pin)
-            
-            // Do not reload / scroll to bottom but retrieve 12 (?) photos from Flickr
-            Flickr().startDownloadingPhotosForPin (pin, maxNrOfFlickrPagesIn: maxNrOfFlickrPages) { (maxNrOfFlickrPagesOut, success, errorString) in
-                if success {
-                    self.maxNrOfFlickrPages = maxNrOfFlickrPagesOut
-                } else {
-                    // Bad luck, throw message
-                    dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
-                        self.throwMessage(errorString!)
-                    }) //end of dispatch
-                }
+            if self.retrievePhotos() {
+                // One or more photos could not be dowloaded, reload the screen to activate New Collection and "+" buttons
+                dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                    self.myCollView.reloadData()
+                }) //end of dispatch
             }
         }
     } // ========== End of "newCollection" ===============================================================================
-    
     
     @IBAction func addToCurrCollection(sender: UIBarButtonItem) {
         
@@ -312,39 +341,21 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         newCollectionButton.enabled   = false
         addToCollectionButton.enabled = false
         
-        scrollToBottom                = true
-        
         // First remove empty photos
-        Flickr().removeEmptyPhotosAndSave(pin)
-        
-        // As first step add 12 (?) empty photos to the collectionView
-        Flickr().addEmptyPhotos(pin)
-        
-        // Wait a second before reloading the collection view otherwise we get system crash due to scroll to invalid indexPath
-        // System needs some time to handle adding empty photos
-        let seconds = 1.0
-        let delay = seconds * Double(NSEC_PER_SEC)  // nanoseconds per seconds
-        var dispatchTime = dispatch_time(DISPATCH_TIME_NOW, Int64(delay))
-        
-        dispatch_after(dispatchTime, dispatch_get_main_queue(), {
+        Flickr.sharedInstance.removeEmptyPhotosAndSave(pin)
             
+        if self.retrievePhotos() {
+            // One or more photos could not be dowloaded, reload the screen to activate New Collection and "+" buttons
+            dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
+                self.myCollView.reloadData()
+            }) //end of dispatch
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
             // Reload and scroll to bottom
-            self.myCollView.reloadData()
             self.scrollToLastItem()
-            
-            // Retrieve 12 (?) photos from Flickr
-            Flickr().startDownloadingPhotosForPin (self.pin, maxNrOfFlickrPagesIn: self.maxNrOfFlickrPages) { (maxNrOfFlickrPagesOut, success, errorString) in
-                if success {
-                    self.maxNrOfFlickrPages = maxNrOfFlickrPagesOut
-                } else {
-                    // Bad luck, throw message
-                    dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
-                        self.throwMessage(errorString!)
-                    }) //end of dispatch
-                }
-            }
-            
         })
+
     } // ========== End of "addToCurrCollection" ===============================================================================
     
     func throwMessage (message: String) {
@@ -357,7 +368,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         addToCollectionButton.enabled = false
         
         // Remove empty photos
-        Flickr().removeEmptyPhotosAndSave(pin)
+        Flickr.sharedInstance.removeEmptyPhotosAndSave(pin)
     }
     
     func scrollToLastItem () {
