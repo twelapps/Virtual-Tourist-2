@@ -75,30 +75,61 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
     func mapView(mapView: MKMapView!, annotationView view: MKAnnotationView!,
         didChangeDragState newState: MKAnnotationViewDragState,
         fromOldState oldState: MKAnnotationViewDragState) {
-            
-            if (newState ==  MKAnnotationViewDragState.Starting) {
 
-                // Remove corresponding pin info from Core
-                var indexOfPinToBeRemoved = -1
-                for index in 0...pins.count-1 {
-                    if  (view.annotation.coordinate.latitude    == pins[index].lat) &&
-                        (view.annotation.coordinate.longitude   == pins[index].lon) {
-                       indexOfPinToBeRemoved = index
+            /***************************************************************************************************************************
+            * As soon as a new pin is created by the user the system starts downloading photos associated with the new pin location.   *
+            * If the user tries to drag and drop this pin to a new location BEFORE all photos are downloaded and properly processed    *
+            * the system crashes due to inconsistencies in core. Therefore, prior to allowing drag and drop first check whether all    *
+            * photos are downloaded prior to proceeding. If not display a pop-up.                                                      *
+            ***************************************************************************************************************************/
+            
+            switch newState {
+                case MKAnnotationViewDragState.Starting:
+                
+                    // Find corresponding pin in Core Data
+                    var indexOfPinToBeRemoved = -1
+                    for index in 0...pins.count-1 {
+                        if  (view.annotation.coordinate.latitude    == pins[index].lat) &&
+                            (view.annotation.coordinate.longitude   == pins[index].lon) {
+                                
+                                indexOfPinToBeRemoved = index
+                        }
+                    } // Pin found or pin not found in Core Data
+                    
+                    if indexOfPinToBeRemoved != -1 { // Pin found, now check if all photos already downloaded
+                        
+                        // Check if all photos are there
+                        if pins[indexOfPinToBeRemoved].photos.count > 0 {
+                            var allPhotosPresent = true
+                            for ind in 0...pins[indexOfPinToBeRemoved].photos.count-1 {
+                                if pins[indexOfPinToBeRemoved].photos[ind].url_m == "" {
+                                    allPhotosPresent = false
+                                }
+                            }
+                            if allPhotosPresent {
+                                deletePinFromCore(indexOfPinToBeRemoved)
+                            } else { // Pin found but not all photos present yet, disallow dragging and show alert
+                                view.setDragState(MKAnnotationViewDragState.Canceling, animated: true)
+                                
+                                let alert = UIAlertView(title:"Oops!",message:"Can't drop and drag pin till all photos are downloaded", delegate:nil,
+                                    cancelButtonTitle:"OK")
+                                alert.show()
+                            }
+                        } else { // Should not happen. But when it happens:
+                            deletePinFromCore(indexOfPinToBeRemoved)
+                        }
+                    } else {
+                        // Should not happen: pin not found in Core Data, do nothing in Core
                     }
-                }
-                if indexOfPinToBeRemoved != -1 {
-                    deletePinFromCore(indexOfPinToBeRemoved)
-                }
+                
+                case MKAnnotationViewDragState.Ending:
+                    // New coordinates are already set !! The pin that was picked is from a different managed object context.
+                    // We need to make a new pin and save it to Core.
+                    addPinToCore(view.annotation.coordinate.latitude, lon: view.annotation.coordinate.longitude)
+                
+                default:
+                    let dummy = true // One executable statement mandatory
             }
-            
-            if (newState ==  MKAnnotationViewDragState.Ending) {
-
-                // New coordinates are already set !!
-                // The pin that was picked is from a different managed object context.
-                // We need to make a new pin and save it to Core
-                addPinToCore(view.annotation.coordinate.latitude, lon: view.annotation.coordinate.longitude)
-            }
-            
     }
     
     /**
@@ -152,6 +183,7 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
     
     func deletePinFromCore (index: Int) {
         let pinToBeRemoved = pins[index]
+        
         pins.removeAtIndex(index)
         
         // And we save the shared context, using the convenience method in

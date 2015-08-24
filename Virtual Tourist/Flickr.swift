@@ -181,15 +181,15 @@ class Flickr: NSObject {
         
     } // ========== End of "private var sharedContext" ===============================================================
     
-    func downloadOnePhotoFromFlickr (pin: Pin, maxNrOfFlickrPages: Int, completionHandler: (success: Bool, errorString: String?) -> Void) {
+    func downloadOnePhotoFromFlickr (pin: Pin?, maxNrOfFlickrPages: Int, completionHandler: (success: Bool, errorString: String?) -> Void) {
         
         // Obtain an empty photo; will be added to the pin and the context will be saved to core. This happens on the main thread
         // so no need to use the "dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode" command.
-        var photo = self.addEmptyPhoto(pin)
+        var photo = self.addEmptyPhoto(pin!)
         
             // Retrieve random photo from Flickr
             let randomPage = Int(arc4random_uniform(UInt32(maxNrOfFlickrPages)+1)) // The random returns 0-39 !!
-            FlickrDBClient().GetFlickrRandomPhoto(pin.lat, lon: pin.lon, pageNumber: randomPage) { (imageData, photoTitle, url_m, success, errorString) in
+            FlickrDBClient().GetFlickrRandomPhoto(pin!.lat, lon: pin!.lon, pageNumber: randomPage) { (imageData, photoTitle, url_m, success, errorString) in
                 
                 if success {
                     
@@ -197,15 +197,25 @@ class Flickr: NSObject {
                     // Leave a-synchronous mode to update photo on the main thread which is the owner of the NSManagedObjectContext !!
                     dispatch_async(dispatch_get_main_queue(), {
                         
-                        let imageFileName = self.fileNameFromFullFlickrPath(url_m)
+                        // The pin may have been removed while waiting for the photo download e.g. when dragging a pin to a different location on the map
+                      //  if let temp = pin {
+                        if pin != nil {
+                            
+                            let imageFileName = self.fileNameFromFullFlickrPath(url_m)
+                            
+                            self.addImage(imageFileName, fileContents: imageData)
+                            
+                            
+                            photo.photoTitle = photoTitle
+                            photo.url_m      = imageFileName            // Save the path to the image in the photo object
+                            
+                            
+                            // Save the photo to core
+                            CoreDataStackManager.sharedInstance().saveContext()
+                            
+                        } else {
                         
-                        self.addImage(imageFileName, fileContents: imageData)
-                        
-                        photo.photoTitle = photoTitle
-                        photo.url_m      = imageFileName            // Save the path to the image in the photo object
-                        
-                        // Save the photo to core
-                        CoreDataStackManager.sharedInstance().saveContext()
+                        } // End of "if pin != Pin() {"
                     })
                     
                     // Return result
@@ -217,7 +227,9 @@ class Flickr: NSObject {
             
     } // ========== End of "downloadOnePhotoFromFlickr" ============================================================================
     
-    func addEmptyPhoto (pin: Pin) -> Photo {
+    func addEmptyPhoto (pin: Pin?) -> Photo {
+        
+        if pin != nil {
         
         /*******************************************************************************************************************
         * Add 1 empty Photo to the pin. Save to core on the main thread. It will be processed by fetchedResultsController. *
@@ -227,23 +239,26 @@ class Flickr: NSObject {
             Photo.Keys.Image        : NSData(),
             Photo.Keys.PhotoTitle   : "",
             Photo.Keys.Url_m        : "",
-            Photo.Keys.PhotoCounter : String(1000 + pin.photos.count + 1),
+            Photo.Keys.PhotoCounter : String(1000 + pin!.photos.count + 1),
         ]
         
         // Now we create a new Photo, using the shared Context
         let newEmptyPhoto = Photo(dictionary: dictionary, context: self.sharedContext)
         
         // Through the relationship between pin and photo the following statement
-        // will automatically add photo to pin's photos array as well!!
-        newEmptyPhoto.location = pin
+        // will automatically add photo to pin's photos array as well!
+        newEmptyPhoto.location = pin!
         
         // Due to these changes the NSFetchedResultsController will take care of calling the necessary functions
         // to display the empty cells with activity indicator
         
         // Save the shared context, using the convenience method in the CoreDataStackManager
         CoreDataStackManager.sharedInstance().saveContext() // Should already be on the main thread
-        
-        return newEmptyPhoto
+         
+            return newEmptyPhoto
+        } else {
+            return Photo()
+        }
     
     } // ========== End of "addEmptyPhoto" =======================================================================================================
 

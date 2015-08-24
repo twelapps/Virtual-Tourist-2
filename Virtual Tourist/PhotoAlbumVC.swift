@@ -59,7 +59,11 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         super.viewDidLoad()
         
         // Remove empty photos from the pin
-        Flickr.sharedInstance.removeEmptyPhotosAndSave(pin)
+        // 20150824 DO NOT DO THIS, WE WILL GET INTO TROUBLE IN THE FOLLOWING SCENARIO:
+        //          CREATE PIN, QUICKLY SELECT IT: NOT ALL PHOTOS DOWNLOADED AND PROCESSED AND HENCE NOT DISPLAYED IN THE COLLECTION VIEW.
+        //          SELECT "+", AND THEN SELECT DETAILED IMAGE VIEW: INCONSISTENCY FOR SOME IMAGES BETWEEN IMAGE SELECTED
+        //          AND IMAGE DISPLAYED IN DETAILED IMAGE VIEW.
+//        Flickr.sharedInstance.removeEmptyPhotosAndSave(pin)
         
         // Initialize the (textView!) message field
         errorMessage.editable = false // do not allow edit of the error message textview field
@@ -336,7 +340,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     } // ========== End of "newCollection" ===============================================================================
     
     @IBAction func addToCurrCollection(sender: UIBarButtonItem) {
-        
+                
         // De-activate "new collection" and "add to current collection" buttons
         newCollectionButton.enabled   = false
         addToCollectionButton.enabled = false
