@@ -12,6 +12,7 @@ import CoreData
 class PhotoVC: UIViewController {
     
     // Input parameters.
+    var pin  : Pin!
     var photo: Photo!
     
     @IBOutlet weak var photoImage : UIImageView!
@@ -55,6 +56,14 @@ class PhotoVC: UIViewController {
         // Remove photo and save the remainder to core
         Flickr.sharedInstance.removeImage(photo.url_m)
         photo.location = nil
+        
+        // Redo the numbering of the photos.
+        // If we don't do this we get a problem in the following scenario: add pin; select pin (photo collection is
+        // displayed); select first photo and delete it; select "+" and then some of the photos in the collection
+        // and in the detailed image view are not corresponding.
+        for index in 0...pin.photos.count-1 {
+            pin.photos[index].photoCounter = String(1000 + index + 1)
+        }
         
         // Finally we save the shared context, using the convenience method in the CoreDataStackManager
         CoreDataStackManager.sharedInstance().saveContext()

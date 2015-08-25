@@ -180,7 +180,8 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             // Next viewcontroller is the PhotoDetailViewController
             let detailController = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoVC")! as! PhotoVC
             
-            // Set the properties on the PhotoVC         
+            // Set the properties on the PhotoVC 
+            detailController.pin      = pin
             detailController.photo    = pin.photos[indexPath.row]
             
             // Push it on the navigation stack
@@ -353,12 +354,15 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
                 self.myCollView.reloadData()
             }) //end of dispatch
-        }
+        } else {
         
         dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode
             // Reload and scroll to bottom
+/*TRY*/            self.myCollView.reloadData()
             self.scrollToLastItem()
         })
+            
+        }
 
     } // ========== End of "addToCurrCollection" ===============================================================================
     
