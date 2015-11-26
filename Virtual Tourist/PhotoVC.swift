@@ -27,7 +27,7 @@ class PhotoVC: UIViewController {
         super.viewDidLoad()
         
         // // Create the button for removing the photo.
-        var removePhotoButton = UIBarButtonItem(title: "Remove photo",
+        let removePhotoButton = UIBarButtonItem(title: "Remove photo",
                                                 style: .Plain,
                                                target: self,
                                                action: "removePhotoSelected")

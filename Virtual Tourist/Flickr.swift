@@ -26,37 +26,37 @@ class Flickr: NSObject {
     
     private var filePath : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.FlickrAPIKeyArchive).path!
     }
     
     private var filePathVar : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.LatLonVarArch).path!
     }
     
     private var filePathAskConfCollRenew : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.AskConfCollRenewArch).path!
     }
     
     private var filePathSupportDraggingPin : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.SupportDraggingPin).path!
     }
     
     private var filePathPreLoadPhotos : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.PreLoadPhotosArch).path!
     }
     
     private var filePathNrPhotosToDownload : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent(Flickr.Constants.NrPhotosToDownloadArch).path!
     }
     
@@ -157,21 +157,23 @@ class Flickr: NSObject {
     }
     
     func fetchAllPins() -> [Pin] {
-        let error: NSErrorPointer = nil
         
         // Create the Fetch Request
         let fetchRequest = NSFetchRequest(entityName: "Pin")
         
         // Execute the Fetch Request
-        let results = sharedContext.executeFetchRequest(fetchRequest, error: error)
+        var results = [Pin]()
         
-        // Check for Errors
-        if error != nil {
+        do
+        {
+            try results = sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
+            
+        } catch let error as NSError {
             NSLog ("Error in fetchAllPins(): \(error)")
         }
         
         // Return the results, cast to an array of Person objects
-        return results as! [Pin]
+        return results 
         
     } // ========== End of "fetchAllPins" ============================================================================
     
@@ -185,7 +187,7 @@ class Flickr: NSObject {
         
         // Obtain an empty photo; will be added to the pin and the context will be saved to core. This happens on the main thread
         // so no need to use the "dispatch_async(dispatch_get_main_queue(), { // Leave a-synchronous mode" command.
-        var photo = self.addEmptyPhoto(pin!)
+        let photo = self.addEmptyPhoto(pin!)
         
             // Retrieve random photo from Flickr
             let randomPage = Int(arc4random_uniform(UInt32(maxNrOfFlickrPages)+1)) // The random returns 0-39 !!
@@ -298,7 +300,12 @@ class Flickr: NSObject {
     }
     
     func fileNameFromFullFlickrPath (FlickrPath: String) -> String {
-        var fullFlickrPath = Array(FlickrPath)
+        
+        // First build an array of characters out of the input string
+        var fullFlickrPath = [Character]()
+        for ind in 0...FlickrPath.characters.count-1 { // Length of the input string
+            fullFlickrPath.append(FlickrPath[FlickrPath.startIndex.advancedBy(ind)])
+        }
         var fileName = ""
         var stopSearchingForwardSlash = false
         for var index = (fullFlickrPath.count - 1); index >= 0; index-- {
@@ -318,17 +325,21 @@ class Flickr: NSObject {
     
     func createDir () {
         
-        var documentsdir = dirPaths[0] as! String // The Documents Directory where to store our files
+        var documentsdir = dirPaths[0] // The Documents Directory where to store our files
         documentsdir += "/Flickr-images"
         
         // Create Flickr-images directory to contain our downloaded images. Ignore error since it will only tell you
         // that directory already exists or a severe error occurred from which we cannot recover anyway
-        fileManager.createDirectoryAtPath(documentsdir, withIntermediateDirectories: false, attributes: nil, error: nil)
+        do
+        {
+            try fileManager.createDirectoryAtPath(documentsdir, withIntermediateDirectories: false, attributes: nil)
+            
+        } catch _ as NSError { }
     }
     
     func addImage (fileName: String, fileContents: NSData) {
         
-        var documentsdir = dirPaths[0] as! String // The Documents Directory where to store our files
+        var documentsdir = dirPaths[0] // The Documents Directory where to store our files
         documentsdir += "/Flickr-images"
         
         // Add the imagefile
@@ -338,7 +349,7 @@ class Flickr: NSObject {
     
     func readImage (fileName: String) -> NSData? {
         
-        var documentsdir = dirPaths[0] as! String // The Documents Directory where to store our files
+        var documentsdir = dirPaths[0] // The Documents Directory where to store our files
         documentsdir += "/Flickr-images"
         
         // Read the imagefile
@@ -349,13 +360,17 @@ class Flickr: NSObject {
     
     func removeImage (fileName: String) {
         
-        var documentsdir = dirPaths[0] as! String // The Documents Directory where to store our files
+        var documentsdir = dirPaths[0] // The Documents Directory where to store our files
         documentsdir += "/Flickr-images"
         
         // Remove the imagefile
         let filePath = documentsdir + "/" + fileName
-        fileManager.removeItemAtPath(filePath, error: nil)
         
+        do
+        {
+            try fileManager.removeItemAtPath(filePath)
+            
+        } catch _ as NSError { }
     }
 
 } // End of class "Flickr.swift"

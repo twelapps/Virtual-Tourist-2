@@ -24,7 +24,6 @@
 		A8596C401B584F7D00709CF9 /* Virtual_TouristTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8596C3F1B584F7D00709CF9 /* Virtual_TouristTests.swift */; };
 		A8596C4F1B5853ED00709CF9 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8596C4E1B5853ED00709CF9 /* MapKit.framework */; };
 		A8596C511B587B6400709CF9 /* PhotoAlbumVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8596C501B587B6400709CF9 /* PhotoAlbumVC.swift */; };
-		A87A4D231B76AB990099E601 /* Readme.md in Sources */ = {isa = PBXBuildFile; fileRef = A87A4D221B76AB990099E601 /* Readme.md */; };
 		A88511B91B70E22D00A24EBF /* CoreDataStackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88511B81B70E22D00A24EBF /* CoreDataStackManager.swift */; };
 		A89FDB971B5ED290006398BC /* Remove.png in Resources */ = {isa = PBXBuildFile; fileRef = A89FDB961B5ED290006398BC /* Remove.png */; };
 		A8E0482C1B763C300029171E /* FlickrDBClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E0482B1B763C300029171E /* FlickrDBClient.swift */; };
@@ -62,7 +61,6 @@
 		A8596C3F1B584F7D00709CF9 /* Virtual_TouristTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Virtual_TouristTests.swift; sourceTree = "<group>"; };
 		A8596C4E1B5853ED00709CF9 /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		A8596C501B587B6400709CF9 /* PhotoAlbumVC.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAlbumVC.swift; sourceTree = "<group>"; };
-		A87A4D221B76AB990099E601 /* Readme.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		A88511B81B70E22D00A24EBF /* CoreDataStackManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataStackManager.swift; sourceTree = "<group>"; };
 		A89FDB961B5ED290006398BC /* Remove.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Remove.png; sourceTree = "<group>"; };
 		A8E0482B1B763C300029171E /* FlickrDBClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FlickrDBClient.swift; sourceTree = "<group>"; };
@@ -109,7 +107,6 @@
 		A8596C261B584F7D00709CF9 /* Virtual Tourist */ = {
 			isa = PBXGroup;
 			children = (
-				A87A4D221B76AB990099E601 /* Readme.md */,
 				A8596C291B584F7D00709CF9 /* AppDelegate.swift */,
 				A8596C491B584FF400709CF9 /* Model */,
 				A8596C4A1B584FFE00709CF9 /* View */,
@@ -242,7 +239,8 @@
 		A8596C1C1B584F7D00709CF9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0640;
+				LastSwiftUpdateCheck = 0700;
+				LastUpgradeCheck = 0700;
 				ORGANIZATIONNAME = Twelker;
 				TargetAttributes = {
 					A8596C231B584F7D00709CF9 = {
@@ -309,7 +307,6 @@
 				A8596C2A1B584F7D00709CF9 /* AppDelegate.swift in Sources */,
 				A838A3921B67056C00716A8E /* PhotoVC.swift in Sources */,
 				A84C249C1B67B01300CDA844 /* SetupVC.swift in Sources */,
-				A87A4D231B76AB990099E601 /* Readme.md in Sources */,
 				A88511B91B70E22D00A24EBF /* CoreDataStackManager.swift in Sources */,
 				A832BDD71B5C7E20002945F3 /* Model.xcdatamodeld in Sources */,
 				A8E0482C1B763C300029171E /* FlickrDBClient.swift in Sources */,
@@ -381,6 +378,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -396,7 +394,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -434,7 +432,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
@@ -447,6 +445,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "Virtual Tourist/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.twelker.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -457,6 +456,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "Virtual Tourist/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.twelker.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -475,6 +475,7 @@
 				);
 				INFOPLIST_FILE = "Virtual TouristTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.twelker.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Virtual Tourist.app/Virtual Tourist";
 			};
@@ -490,6 +491,7 @@
 				);
 				INFOPLIST_FILE = "Virtual TouristTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.twelker.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Virtual Tourist.app/Virtual Tourist";
 			};

@@ -40,16 +40,12 @@ class CoreDataStackManager {
     
     lazy var applicationDocumentsDirectory: NSURL = {
         
-//        println("Instantiating the applicationDocumentsDirectory property")
-        
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        return urls[urls.count-1] as! NSURL
+        return urls[urls.count-1] 
         }()
     
     lazy var managedObjectModel: NSManagedObjectModel = {
         // The managed object model for the application. This property is not optional. It is a fatal error for the application not to be able to find and load its model.
-
-//        println("Instantiating the managedObjectModel property")
         
         let modelURL = NSBundle.mainBundle().URLForResource("Model", withExtension: "momd")!
         return NSManagedObjectModel(contentsOfURL: modelURL)!
@@ -71,29 +67,26 @@ class CoreDataStackManager {
         // The persistent store coordinator for the application. This implementation creates and return a coordinator, having added the store for the application to it. This property is optional since there are legitimate error conditions that could cause the creation of the store to fail.
         // Create the coordinator and store
         
-//        println("Instantiating the persistentStoreCoordinator property")
-        
         var coordinator: NSPersistentStoreCoordinator? = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
         let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent(SQLITE_FILE_NAME)
         
-//        println("sqlite path: \(url.path!)")
-        
-        var error: NSError? = nil
-
-        if coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil, error: &error) == nil {
+        do
+        {
+            try coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
+            
+        } catch let error as NSError {
             coordinator = nil
             // Report any error we got.
             let dict = NSMutableDictionary()
             dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
             dict[NSLocalizedFailureReasonErrorKey] = "There was an error creating or loading the application's saved data."
             dict[NSUnderlyingErrorKey] = error
-            error = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict as [NSObject : AnyObject])
-
+            dict["Domain"] = "Rijks_CoreDataStackManager"
+            dict["Code"] = 9999
             // Left in for development development.
-            NSLog("Unresolved error \(error), \(error!.userInfo)")
+            NSLog("Unresolved error \(dict)")
             abort()
         }
-        
         return coordinator
         }()
     
@@ -106,7 +99,7 @@ class CoreDataStackManager {
         if coordinator == nil {
             return nil
         }
-        var managedObjectContext = NSManagedObjectContext()
+        var managedObjectContext = NSManagedObjectContext(concurrencyType: NSManagedObjectContextConcurrencyType.MainQueueConcurrencyType)
         managedObjectContext.persistentStoreCoordinator = coordinator
         return managedObjectContext
         }()
@@ -114,14 +107,26 @@ class CoreDataStackManager {
     // MARK: - Core Data Saving support
     
     func saveContext () {
-
-        if let context = self.managedObjectContext {
         
-            var error: NSError? = nil
+        if let context = self.managedObjectContext {
             
-            if context.hasChanges && !context.save(&error) {
-                NSLog("Unresolved error \(error), \(error!.userInfo)")
-                abort()
+            if context.hasChanges {
+                
+                do
+                {
+                    try context.save()
+                    
+                } catch let error as NSError {
+                    // Report any error we got.
+                    let dict = NSMutableDictionary()
+                    dict[NSLocalizedDescriptionKey] = "Failed to save the application's changed data"
+                    dict[NSLocalizedFailureReasonErrorKey] = "There was an error saving the application's changed data."
+                    dict[NSUnderlyingErrorKey] = error
+                    dict["Domain"] = "Rijks_CoreDataStackManager"
+                    dict["Code"] = 9998
+                    NSLog("Unresolved error \(dict)")
+                    abort()
+                }
             }
         }
     }

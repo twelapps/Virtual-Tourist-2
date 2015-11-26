@@ -10,7 +10,7 @@ import MapKit
 
 extension TravelLocationsMapVC: MKMapViewDelegate {
     
-    func mapView(mapView: MKMapView!, viewForAnnotation annotation: MKAnnotation!) -> MKAnnotationView! {
+    func mapView(mapView: MKMapView, viewForAnnotation annotation: MKAnnotation) -> MKAnnotationView? {
         
         let identifier = "pin"
         var view: MKPinAnnotationView
@@ -21,14 +21,14 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
         } else {
             view = MKPinAnnotationView(annotation: annotation, reuseIdentifier: identifier)
             view.canShowCallout = true
-            view.rightCalloutAccessoryView = UIButton.buttonWithType(.DetailDisclosure) as! UIView
+            view.rightCalloutAccessoryView = UIButton(type: .DetailDisclosure) as UIView
         }
-        view.pinColor = .Red // Red pin although red should be the default; .Green and .Purple are the other options
+        view.pinTintColor = UIColor.redColor() // Red pin although red should be the default; .Green and .Purple are the other options
         view.draggable = true // So that you can drag a pin to a new location; removes the need to delete pins
         return view
     }
     
-    func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
+    func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
         
         // If "drag pin" supported (see Setup menu) 
         //   Then do nothing (call-out will be displayed and upon selecting the call-out the user will be navigated to the
@@ -38,25 +38,25 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
             // Do nothing
         } else {
             // Define input parameters for PhotoAlbumVC and navigate to it
-            let lat = view.annotation.coordinate.latitude
-            let lon = view.annotation.coordinate.longitude
+            let lat = view.annotation!.coordinate.latitude
+            let lon = view.annotation!.coordinate.longitude
             navToPhotoCollection(lat, longitude: lon)
         }
     }
     
-    func mapView(mapView: MKMapView!, annotationView view: MKAnnotationView!,
-        calloutAccessoryControlTapped control: UIControl!) {
+    func mapView(mapView: MKMapView, annotationView view: MKAnnotationView,
+        calloutAccessoryControlTapped control: UIControl) {
             
             // Define input parameters for PhotoAlbumVC and navigate to it
-            let lat = view.annotation.coordinate.latitude
-            let lon = view.annotation.coordinate.longitude
+            let lat = view.annotation!.coordinate.latitude
+            let lon = view.annotation!.coordinate.longitude
             navToPhotoCollection(lat, longitude: lon)
             
     }
     
     func navToPhotoCollection(latitude: Double!, longitude: Double!) {
-        if let storyboard = self.storyboard {
-            var controller = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoAlbumVC") as! PhotoAlbumVC
+        if let _ = self.storyboard {
+            let controller = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoAlbumVC") as! PhotoAlbumVC
             
             // Find selected pin in the array of pins
             for index in 0...pins.count-1 {
@@ -72,7 +72,7 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
     }
     
     // Handle move of an existing pin to a different location: remove any photos if there are
-    func mapView(mapView: MKMapView!, annotationView view: MKAnnotationView!,
+    func mapView(mapView: MKMapView, annotationView view: MKAnnotationView,
         didChangeDragState newState: MKAnnotationViewDragState,
         fromOldState oldState: MKAnnotationViewDragState) {
 
@@ -89,8 +89,8 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
                     // Find corresponding pin in Core Data
                     var indexOfPinToBeRemoved = -1
                     for index in 0...pins.count-1 {
-                        if  (view.annotation.coordinate.latitude    == pins[index].lat) &&
-                            (view.annotation.coordinate.longitude   == pins[index].lon) {
+                        if  (view.annotation!.coordinate.latitude    == pins[index].lat) &&
+                            (view.annotation!.coordinate.longitude   == pins[index].lon) {
                                 
                                 indexOfPinToBeRemoved = index
                         }
@@ -111,9 +111,14 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
                             } else { // Pin found but not all photos present yet, disallow dragging and show alert
                                 view.setDragState(MKAnnotationViewDragState.Canceling, animated: true)
                                 
-                                let alert = UIAlertView(title:"Oops!",message:"Can't drop and drag pin till all photos are downloaded", delegate:nil,
-                                    cancelButtonTitle:"OK")
-                                alert.show()
+                                let alert = UIAlertController(title: "Oops!", message:"Can't drop and drag pin till all photos are downloaded", preferredStyle: .Alert)
+                                let action = UIAlertAction(title: "OK", style: .Default) { _ in
+                                    // Put here any code that you would like to execute when
+                                    // the user taps that OK button (may be empty in your case if that's just
+                                    // an informative alert)
+                                }
+                                alert.addAction(action)
+                                self.presentViewController(alert, animated: true, completion: nil)
                             }
                         } else { // Should not happen. But when it happens:
                             deletePinFromCore(indexOfPinToBeRemoved)
@@ -125,10 +130,8 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
                 case MKAnnotationViewDragState.Ending:
                     // New coordinates are already set !! The pin that was picked is from a different managed object context.
                     // We need to make a new pin and save it to Core.
-                    addPinToCore(view.annotation.coordinate.latitude, lon: view.annotation.coordinate.longitude)
-                
-                default:
-                    let dummy = true // One executable statement mandatory
+                    addPinToCore(view.annotation!.coordinate.latitude, lon: view.annotation!.coordinate.longitude)
+                default: break
             }
     }
     
@@ -137,7 +140,7 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
     *  the view controller to be notified whenever the map region changes. So
     *  that it can save the new region.
     */
-    func mapView(mapView: MKMapView!, regionDidChangeAnimated animated: Bool) {
+    func mapView(mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
         saveMapRegion()
     }
     
@@ -163,7 +166,7 @@ extension TravelLocationsMapVC: MKMapViewDelegate {
         
         if Flickr.sharedInstance.preLoadPhotos() {
         
-            for index in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
+            for _ in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
                 
                 // Retrieve 1 photo from Flickr
                 Flickr.sharedInstance.downloadOnePhotoFromFlickr(draggedPinToBeAdded, maxNrOfFlickrPages: 0) { (success, errorString) in

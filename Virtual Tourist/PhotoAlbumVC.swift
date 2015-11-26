@@ -73,7 +73,14 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         activateCollectionButtons()
         
         // Start the fetched results controller
-        fetchedResultsController.performFetch(nil)
+        do
+        {
+            try fetchedResultsController.performFetch()
+            
+        } catch let error as NSError {
+            // Report any error we got.
+            throwMessage("Error starting fetchedResultsController: \(error)")
+        }
         
         // Set the delegate to this view controller
         fetchedResultsController.delegate = self
@@ -132,7 +139,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
+        let sectionInfo = self.fetchedResultsController.sections![section]
         
         return sectionInfo.numberOfObjects
     } // ========== End of "collectionView.numberOfItemsInSection" ============================================================================
@@ -142,7 +149,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         // Pin associated photos array now managed by NSFetchedResultsController
         let photo = fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
         
-        var cell = collectionView.dequeueReusableCellWithReuseIdentifier(reuseIdentifier, forIndexPath: indexPath) as? FlickrCollectionViewCell
+        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(reuseIdentifier, forIndexPath: indexPath) as? FlickrCollectionViewCell
         
         if cell != nil {
     
@@ -178,7 +185,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             collectionView.deselectItemAtIndexPath(indexPath, animated: true)
             
             // Next viewcontroller is the PhotoDetailViewController
-            let detailController = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoVC")! as! PhotoVC
+            let detailController = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoVC") as! PhotoVC
             
             // Set the properties on the PhotoVC 
             detailController.pin      = pin
@@ -193,7 +200,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
 
     /* FOR DEBUG ******************************************/
     func currentTimeMillis() -> Int64{
-        var nowDouble = NSDate().timeIntervalSince1970
+        let nowDouble = NSDate().timeIntervalSince1970
         return Int64(nowDouble*1000)
     }
     /* END DEBUG ******************************************/
@@ -222,7 +229,6 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
             case .Move:
                 deletedIndexPaths.append(indexPath!)
                 insertIndexPaths.append(newIndexPath!)
-            default: return
             }
     } // ========== End of "controller.didChangeObject" ===============================================================================
     
@@ -255,7 +261,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         self.newCollectionButton.enabled   = false
         self.addToCollectionButton.enabled = false
         
-        for index in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
+        for _ in 0...(Flickr.sharedInstance.nrOfPhotosToDownload()-1) {
             
             // Retrieve 1 photo from Flickr
             Flickr.sharedInstance.downloadOnePhotoFromFlickr(self.pin, maxNrOfFlickrPages: self.maxNrOfFlickrPages) { (success, errorString) in
@@ -309,7 +315,7 @@ class PhotoAlbumVC: UIViewController, UICollectionViewDataSource, UITextViewDele
         if Flickr.sharedInstance.getAskConfirmationCollectionRenewal() {
             
             // Display pop-up
-            var alert = UIAlertController(title: "Deleting previous collection", message: "Are you sure??", preferredStyle: UIAlertControllerStyle.Alert)
+            let alert = UIAlertController(title: "Deleting previous collection", message: "Are you sure??", preferredStyle: UIAlertControllerStyle.Alert)
             alert.addAction(UIAlertAction(title: "Cancel", style: .Cancel, handler: nil))
             alert.addAction(UIAlertAction(title: "Yes", style: .Default, handler: { action in
                 

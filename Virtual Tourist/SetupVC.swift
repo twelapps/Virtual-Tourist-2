@@ -27,7 +27,7 @@ class SetupVC: UIViewController {
         super.viewDidLoad()
         
         // Add button "Done" to the navigation bar
-        var pinBarButtonItem = UIBarButtonItem(title: "Done",
+        let pinBarButtonItem = UIBarButtonItem(title: "Done",
                                                style: .Plain,
                                               target: self,
                                               action: "DoneSelected")
@@ -105,7 +105,7 @@ class SetupVC: UIViewController {
         changeVariance()
         
         // Archive number of photos to download
-        let temp = nrPhotosToDownloadInput.text.toInt()
+        let temp = Int(nrPhotosToDownloadInput.text!)
         if temp != nil && temp >= 1  && temp <= Flickr.Constants.nrPhotosToDownloadDefault {
             Flickr.sharedInstance.setNrOfPhotosToDownload(temp!)
         } else {

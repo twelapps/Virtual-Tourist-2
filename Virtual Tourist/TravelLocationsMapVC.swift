@@ -36,7 +36,7 @@ class TravelLocationsMapVC: UIViewController, UITextViewDelegate {
         self.mapView.addGestureRecognizer(longPressGesture)
         
         // Create the button for selecting the Setup menu
-        var setupBarButtonItem = UIBarButtonItem(title: "Setup",
+        let setupBarButtonItem = UIBarButtonItem(title: "Setup",
             style: .Plain,
             target: self,
             action: "setupSelected")
@@ -95,7 +95,7 @@ class TravelLocationsMapVC: UIViewController, UITextViewDelegate {
     // A convenient property
     var filePath : String {
         let manager = NSFileManager.defaultManager()
-        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let url = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as NSURL!
         return url.URLByAppendingPathComponent("mapRegionArchive").path!
     }
         
@@ -181,7 +181,7 @@ class TravelLocationsMapVC: UIViewController, UITextViewDelegate {
     
     func setupSelected() {
         // Next viewcontroller is the SetupViewController
-        let detailController = self.storyboard!.instantiateViewControllerWithIdentifier("SetupVC")! as! SetupVC
+        let detailController = self.storyboard!.instantiateViewControllerWithIdentifier("SetupVC") as! SetupVC
         
         // Push it on the nav stack
         self.navigationController!.pushViewController(detailController, animated: true)

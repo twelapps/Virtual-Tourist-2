@@ -14,8 +14,8 @@ class FlickrDBClient : NSObject {
     func GetFlickrMaxNrOfPagesContainingPhotos(lat: Double, lon: Double, completionHandler: (maxPages: Int, success: Bool, errorString: String?) -> Void) {
         
         // Init output parameters
-        var success     = true
-        var errorString = ""
+//        var success     = true
+//        var errorString = ""
         var maxPages    = 0
         
         /* Initialize session and url */
@@ -30,27 +30,34 @@ class FlickrDBClient : NSObject {
                 completionHandler(maxPages: maxPages, success: false, errorString: Flickr.Constants.msgCouldNotCompleteReq)
                 return
             } else {
-                
                 /* Success! Parse the data */
-                var parsingError: NSError? = nil
-                let parsedResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments, error: &parsingError) as! NSDictionary
-                
-                if let photosDictionary = parsedResult.valueForKey("photos") as? [String: AnyObject] {
+                do {
+                    if let parsedResult = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.AllowFragments) as? NSDictionary {
                     
-                    /* Flickr retrieves maximum 4000 (photos) / 100 (default nr of photos per page) / hence 40 pages
-                    Build in more randomness by also randomly selecting the page to retrieve a random photo image from */
-                    
-                    // Determine the total number of pages
-                    if let totalPages = photosDictionary["pages"] as? Int {
-                        maxPages = min(totalPages,Flickr.Constants.FlickrMaxPagesDownloaded)
-                        completionHandler(maxPages: maxPages, success: true, errorString: "")
+                        if let photosDictionary = parsedResult.valueForKey("photos") as? [String: AnyObject] {
+                            
+                            /* Flickr retrieves maximum 4000 (photos) / 100 (default nr of photos per page) / hence 40 pages
+                            Build in more randomness by also randomly selecting the page to retrieve a random photo image from */
+                            
+                            // Determine the total number of pages
+                            if let totalPages = photosDictionary["pages"] as? Int {
+                                maxPages = min(totalPages,Flickr.Constants.FlickrMaxPagesDownloaded)
+                                completionHandler(maxPages: maxPages, success: true, errorString: "")
+                            } else {
+                                completionHandler(maxPages: maxPages, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                            }
+                        
+                        } else {
+                            completionHandler(maxPages: maxPages, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                        }
                     } else {
                         completionHandler(maxPages: maxPages, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
                     }
-                } else {
-                    completionHandler(maxPages: maxPages, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                } /* End of DO */ catch let error as NSError {
+                    completionHandler(maxPages: maxPages, success: false, errorString: error.description)
                 }
             } // End of "if downloadError ..." - else branch
+            
         } // End of "let task = ..."
         
         /* Resume (execute) the task */
@@ -62,8 +69,8 @@ class FlickrDBClient : NSObject {
         completionHandler: (imageData: NSData, photoTitle: String?, url_m: String, success: Bool, errorString: String?) -> Void) {
         
         // Init output parameters
-        var success                = true
-        var error                  = ""
+//        var success                = true
+//        var error                  = ""
         var imageData              = NSData()
         var photoTitle             = ""
         var url_m                  = ""
@@ -85,55 +92,59 @@ class FlickrDBClient : NSObject {
             } else {
                 
                 /* Success! Parse the data */
-                var parsingError: NSError? = nil
-                let parsedResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments, error: &parsingError) as! NSDictionary
-                
-                if let photosDictionary = parsedResult.valueForKey("photos") as? NSDictionary {
+                do {
+                    if let parsedResult = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.AllowFragments) as? NSDictionary {
                     
-                    var totalPhotosVal = 0
-                    if let totalPhotos = photosDictionary["total"] as? String {
-                        totalPhotosVal = (totalPhotos as NSString).integerValue
-                    }
-                    
-                    if totalPhotosVal > 0 {
-                        
-                        if let photoDictArray = photosDictionary["photo"] as? [NSDictionary] {
+                        if let photosDictionary = parsedResult.valueForKey("photos") as? NSDictionary {
                             
-                            // Pick a random index to select a random photo
-                            let randomPhotoIndex = Int(arc4random_uniform(UInt32(photoDictArray.count)))
-                            
-                            let photoDictionary = photoDictArray[randomPhotoIndex] as NSDictionary
-                            
-                            // Pick the title of the photo (if any)
-                            if let temp = photoDictionary["title"] as? String {
-                                photoTitle = temp
+                            var totalPhotosVal = 0
+                            if let totalPhotos = photosDictionary["total"] as? String {
+                                totalPhotosVal = (totalPhotos as NSString).integerValue
                             }
                             
-                            // Pick the image
-                            if let imageUrlString = photoDictionary["url_m"] as? String {
+                            if totalPhotosVal > 0 {
                                 
-                                url_m = imageUrlString
-                                
-                                let imageURL = NSURL(string: imageUrlString)
-                                
-                                if let temp2 = NSData(contentsOfURL: imageURL!) {
-                                    imageData = temp2
+                                if let photoDictArray = photosDictionary["photo"] as? [NSDictionary] {
                                     
-                                    completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: true, errorString: "")
+                                    // Pick a random index to select a random photo
+                                    let randomPhotoIndex = Int(arc4random_uniform(UInt32(photoDictArray.count)))
+                                    
+                                    let photoDictionary = photoDictArray[randomPhotoIndex] as NSDictionary
+                                    
+                                    // Pick the title of the photo (if any)
+                                    if let temp = photoDictionary["title"] as? String {
+                                        photoTitle = temp
+                                    }
+                                    
+                                    // Pick the image
+                                    if let imageUrlString = photoDictionary["url_m"] as? String {
+                                        
+                                        url_m = imageUrlString
+                                        
+                                        let imageURL = NSURL(string: imageUrlString)
+                                        
+                                        if let temp2 = NSData(contentsOfURL: imageURL!) {
+                                            imageData = temp2
+                                            
+                                            completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: true, errorString: "")
+                                        } else {
+                                            completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                                        }
+                                    } else {
+                                        completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                                    } /* of "if let imageUrlString = photoDictionary["url_m"] as? String {" */
                                 } else {
                                     completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
                                 }
                             } else {
                                 completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
-                            } /* of "if let imageUrlString = photoDictionary["url_m"] as? String {" */
+                            }
                         } else {
-                            completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
+                            completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgInvalidFlickrResponse)
                         }
-                    } else {
-                        completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgNoPhotosFound)
-                    }
-                } else {
-                    completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: Flickr.Constants.msgInvalidFlickrResponse)
+                    } /* End of TRY */
+                } /* End of DO */ catch let error as NSError {
+                    completionHandler(imageData: imageData, photoTitle: photoTitle, url_m: url_m, success: false, errorString: error.description)
                 }
             }
         }
@@ -157,8 +168,9 @@ class FlickrDBClient : NSObject {
             urlVars += [key + "=" + "\(escapedValue!)"]
             
         }
-        
-        return (!urlVars.isEmpty ? "?" : "") + join("&", urlVars)
+        let stringRepresentation = urlVars.joinWithSeparator("&")
+//        return (!urlVars.isEmpty ? "?" : "") + join("&", urlVars)
+        return (!urlVars.isEmpty ? "?" : "") + stringRepresentation
     }
     
     func methodArguments(lat: Double, lon: Double) -> [String : AnyObject] {
